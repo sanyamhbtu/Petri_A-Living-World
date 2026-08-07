@@ -143,6 +143,9 @@ app.prepare().then(async () => {
   setInterval(() => {
     if (world.status === 'running') { world = tickWorld(world, TICK_MS); revision += 1; broadcastPatch(); void snapshot() }
   }, TICK_MS)
-  httpServer.listen(port, () => console.log(`[petri] Next + WebSocket server listening on ${port}`))
-  process.on('SIGTERM', () => clearInterval(heartbeat))
+  const host = process.env.HOST ?? '0.0.0.0'
+  httpServer.listen(port, host, () => console.log(`[petri] Next + WebSocket server listening on ${host}:${port}`))
+  const shutdown = () => { clearInterval(heartbeat); httpServer.close(() => process.exit(0)) }
+  process.once('SIGTERM', shutdown)
+  process.once('SIGINT', shutdown)
 })

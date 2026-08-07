@@ -8,6 +8,8 @@
     "start": "tsx server.ts",
     "start:web": "next start",
     "start:realtime": "tsx server.ts",
+    "db:prepare": "tsx scripts/prepare-db.ts",
+    "start:production": "pnpm db:prepare && pnpm start",
     "lint": "eslint ."
   },
   "dependencies": {
