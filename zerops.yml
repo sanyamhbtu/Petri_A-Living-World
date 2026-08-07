@@ -1,12 +1,38 @@
 zerops:
-  - setup: |-
-      pnpm install --frozen-lockfile
-      pnpm run build
+  - setup: production
+    build:
+      base: node@22
+      buildCommands:
+        - corepack enable
+        - pnpm install --frozen-lockfile
+        - pnpm run build
+      deployFiles:
+        - .next
+        - app
+        - components
+        - lib
+        - public
+        - scripts
+        - server.ts
+        - package.json
+        - pnpm-lock.yaml
+        - next.config.mjs
+        - postcss.config.mjs
+        - tsconfig.json
     run:
-      start: pnpm start
-    env:
-      PORT: 3000
-      NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL}
-      KV_REST_API_URL: ${KV_REST_API_URL}
-      KV_REST_API_TOKEN: ${KV_REST_API_TOKEN}
+      base: node@22
+      ports:
+        - port: 3000
+          httpSupport: true
+      envVariables:
+        NODE_ENV: production
+        HOST: 0.0.0.0
+        PORT: 3000
+        DATABASE_URL: ${DATABASE_URL}
+        KV_REST_API_URL: ${KV_REST_API_URL}
+        KV_REST_API_TOKEN: ${KV_REST_API_TOKEN}
+      healthCheck:
+        http:
+          path: /api/health
+          port: 3000
+      start: corepack enable && pnpm start:production
