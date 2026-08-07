@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "next build",
+    "build": "next build && pnpm build:server",
+    "build:server": "tsc -p tsconfig.server.json",
     "start": "tsx server.ts",
     "start:web": "next start",
     "start:realtime": "tsx server.ts",
-    "db:prepare": "tsx scripts/prepare-db.ts",
-    "start:production": "pnpm db:prepare && pnpm start",
+    "db:prepare": "node dist-server/scripts/prepare-db.js",
+    "start:production": "pnpm db:prepare && node dist-server/server.js",
     "lint": "eslint ."
   },
   "dependencies": {

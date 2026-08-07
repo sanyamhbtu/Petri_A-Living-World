@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PETRI_SNAPSHOT_KEY = exports.PETRI_CACHE_KEY = exports.redis = exports.isRedisConfigured = void 0;
+const redis_1 = require("@upstash/redis");
+const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
+const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
+exports.isRedisConfigured = Boolean(url && token);
+exports.redis = exports.isRedisConfigured ? new redis_1.Redis({ url, token }) : null;
+exports.PETRI_CACHE_KEY = 'petri:world:v1';
+exports.PETRI_SNAPSHOT_KEY = 'petri:last-neon-snapshot:v1';
