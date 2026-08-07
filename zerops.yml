@@ -1,0 +1,12 @@
+zerops:
+  - setup: |-
+      pnpm install --frozen-lockfile
+      pnpm run build
+    run:
+      start: pnpm start
+    env:
+      PORT: 3000
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      KV_REST_API_URL: ${KV_REST_API_URL}
+      KV_REST_API_TOKEN: ${KV_REST_API_TOKEN}
