@@ -7,18 +7,21 @@ zerops:
         - pnpm install --frozen-lockfile
         - pnpm run build
       deployFiles:
+        - node_modules
         - .next
         - app
         - components
         - lib
         - public
         - scripts
+        - dist-server
         - server.ts
         - package.json
         - pnpm-lock.yaml
         - next.config.mjs
         - postcss.config.mjs
         - tsconfig.json
+        - tsconfig.server.json
     run:
       base: node@22
       ports:
