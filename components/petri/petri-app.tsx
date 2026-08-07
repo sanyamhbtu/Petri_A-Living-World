@@ -25,6 +25,7 @@ export function PetriApp() {
   const [loading, setLoading] = useState(true)
   const [connectionError, setConnectionError] = useState('')
   const socketRef = useRef<WebSocket | null>(null)
+  const revisionRef = useRef(0)
   const pendingAdminRef = useRef(false)
 
   useEffect(() => {
@@ -50,9 +51,39 @@ export function PetriApp() {
       socketRef.current = socket
       socket.onopen = () => setConnectionError('')
       socket.onmessage = (event) => {
-        const message = JSON.parse(event.data) as { type?: string; world?: WorldSnapshot; message?: string }
+        const message = JSON.parse(event.data) as {
+          type?: string
+          revision?: number
+          world?: WorldSnapshot
+          creatures?: WorldSnapshot['creatures']
+          food?: WorldSnapshot['food']
+          events?: WorldSnapshot['events']
+          births?: number
+          deaths?: number
+          generation?: number
+          startedAt?: number
+          status?: WorldSnapshot['status']
+          message?: string
+        }
         if (message.type === 'snapshot' && message.world) {
+          revisionRef.current = message.revision ?? revisionRef.current
           setWorld(message.world)
+          if (pendingAdminRef.current) { pendingAdminRef.current = false; setPassword(''); setAdminOpen(false) }
+        }
+        if (message.type === 'patch' && message.creatures && message.food) {
+          const nextRevision = message.revision ?? revisionRef.current + 1
+          revisionRef.current = Math.max(revisionRef.current, nextRevision)
+          setWorld((current) => ({
+            ...current,
+            creatures: message.creatures!,
+            food: message.food!,
+            events: message.events ?? current.events,
+            births: message.births ?? current.births,
+            deaths: message.deaths ?? current.deaths,
+            generation: message.generation ?? current.generation,
+            startedAt: message.startedAt ?? current.startedAt,
+            status: message.status ?? current.status,
+          }))
           if (pendingAdminRef.current) { pendingAdminRef.current = false; setPassword(''); setAdminOpen(false) }
         }
         if (message.type === 'error') setAdminError(message.message ?? 'Realtime command failed.')
