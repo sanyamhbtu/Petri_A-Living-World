@@ -1,7 +1,7 @@
 zerops:
-  - setup: production
+  - setup: nodejs
     build:
-      base: node@22
+      base: ubuntu/nodejs@22
       buildCommands:
         - corepack enable
         - pnpm install --frozen-lockfile
@@ -23,7 +23,7 @@ zerops:
         - tsconfig.json
         - tsconfig.server.json
     run:
-      base: node@22
+      base: ubuntu/nodejs@22
       ports:
         - port: 3000
           httpSupport: true
@@ -38,4 +38,4 @@ zerops:
         http:
           path: /api/health
           port: 3000
-      start: corepack enable && pnpm start:production
+      start: pnpm start:production
