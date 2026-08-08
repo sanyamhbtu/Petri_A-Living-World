@@ -94,7 +94,9 @@ function enqueue(task: () => Promise<void>) {
 }
 
 async function main() {
+  console.log('Starting Petri production server...')
   await app.prepare()
+  console.log('Next.js prepared')
   await loadWorld()
   const httpServer = createServer((request, response) => handle(request, response))
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 })
@@ -144,7 +146,7 @@ async function main() {
     if (world.status === 'running') { world = tickWorld(world, TICK_MS); revision += 1; broadcastPatch(); void snapshot() }
   }, TICK_MS)
   const host = process.env.HOST ?? '0.0.0.0'
-  httpServer.listen(port, host, () => console.log(`[petri] Next + WebSocket server listening on ${host}:${port}`))
+  httpServer.listen(port, host, () => console.log(`HTTP server listening on ${host}:${port}`))
   const shutdown = () => { clearInterval(heartbeat); httpServer.close(() => process.exit(0)) }
   process.once('SIGTERM', shutdown)
   process.once('SIGINT', shutdown)
