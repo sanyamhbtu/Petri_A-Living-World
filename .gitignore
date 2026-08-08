@@ -14,3 +14,4 @@ node_modules
 .next/
 dist-server/
 .DS_Store
+.originkit/

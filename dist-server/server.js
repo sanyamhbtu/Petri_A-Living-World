@@ -8,12 +8,15 @@ const next_1 = __importDefault(require("next"));
 const ws_1 = require("ws");
 const drizzle_orm_1 = require("drizzle-orm");
 const simulation_1 = require("./components/petri/simulation");
+const prepare_1 = require("./lib/db/prepare");
 const types_1 = require("./components/petri/types");
 const db_1 = require("./lib/db");
 const schema_1 = require("./lib/db/schema");
 const redis_1 = require("./lib/redis");
 const port = Number(process.env.PORT ?? 3000);
-const dev = process.env.NODE_ENV !== 'production';
+const host = process.env.HOST ?? '0.0.0.0';
+const nodeEnv = process.env.NODE_ENV ?? 'production';
+const dev = nodeEnv !== 'production';
 const app = (0, next_1.default)({ dev });
 const handle = app.getRequestHandler();
 const ADMIN_PASSWORD_HASH = '80585c5c69ad3b293a62fdee09f5ab7f2f8cb6f2078eb1cf7c96da89f8e26235';
@@ -100,8 +103,18 @@ function enqueue(task) {
     commandQueue = commandQueue.then(task).catch((error) => console.warn('[petri] command failed', error));
     return commandQueue;
 }
-app.prepare().then(async () => {
+async function main() {
+    console.log('Starting Petri production server...');
+    console.log(`NODE_ENV=${nodeEnv}`);
+    await (0, prepare_1.prepareDatabase)();
+    console.log('PostgreSQL ready');
     await loadWorld();
+    if (!redis_1.redis)
+        throw new Error('Redis configuration is required in production.');
+    await redis_1.redis.ping();
+    console.log('Redis ready');
+    await app.prepare();
+    console.log('Next.js prepared');
     const httpServer = (0, node_http_1.createServer)((request, response) => handle(request, response));
     const wss = new ws_1.WebSocketServer({ noServer: true, maxPayload: 16 * 1024 });
     httpServer.on('upgrade', (request, socket, head) => {
@@ -192,9 +205,12 @@ app.prepare().then(async () => {
             void snapshot();
         }
     }, TICK_MS);
-    const host = process.env.HOST ?? '0.0.0.0';
-    httpServer.listen(port, host, () => console.log(`[petri] Next + WebSocket server listening on ${host}:${port}`));
+    httpServer.listen(port, host, () => console.log(`HTTP + WebSocket server listening on ${host}:${port}`));
     const shutdown = () => { clearInterval(heartbeat); httpServer.close(() => process.exit(0)); };
     process.once('SIGTERM', shutdown);
     process.once('SIGINT', shutdown);
+}
+main().catch((error) => {
+    console.error('[petri] production server failed to start', error);
+    process.exitCode = 1;
 });
