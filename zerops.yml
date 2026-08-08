@@ -13,14 +13,12 @@ zerops:
         - components
         - lib
         - public
-        - scripts
-        - dist-server
+        - server.ts
         - package.json
         - pnpm-lock.yaml
         - next.config.mjs
         - postcss.config.mjs
         - tsconfig.json
-        - tsconfig.server.json
     run:
       base: nodejs@22
       ports:
@@ -34,4 +32,4 @@ zerops:
         httpGet:
           path: /api/health
           port: 3000
-      start: node dist-server/scripts/prepare-db.js && node dist-server/server.js
+      start: pnpm start:production
