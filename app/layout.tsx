@@ -8,13 +8,14 @@ const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono'
 
 export const metadata: Metadata = {
   title: 'Petri — A living world',
-  description: 'An always-on shared ecosystem of tiny autonomous creatures.',
+  description: 'Observe an always-on shared ecosystem of tiny autonomous creatures, then enter the living world.',
+  keywords: ['Petri', 'ecosystem simulation', 'living world', 'creatures'],
   generator: 'v0.app',
 }
 
 export const viewport: Viewport = {
-  colorScheme: 'dark',
-  themeColor: '#0d1715',
+  colorScheme: 'light dark',
+  themeColor: '#ebe6d8',
   userScalable: false,
 }
 
