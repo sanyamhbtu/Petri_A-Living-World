@@ -3,6 +3,7 @@ import next from 'next'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { eq } from 'drizzle-orm'
 import { createInitialSnapshot, tickWorld, addFood, mutateCreature } from './components/petri/simulation'
+import { prepareDatabase } from './lib/db/prepare'
 import { WORLD_HEIGHT, WORLD_WIDTH } from './components/petri/types'
 import type { Creature, Food, WorldSnapshot } from './components/petri/types'
 import { db } from './lib/db'
@@ -10,7 +11,9 @@ import { petriWorld } from './lib/db/schema'
 import { redis, PETRI_CACHE_KEY, PETRI_SNAPSHOT_KEY } from './lib/redis'
 
 const port = Number(process.env.PORT ?? 3000)
-const dev = process.env.NODE_ENV !== 'production'
+const host = process.env.HOST ?? '0.0.0.0'
+const nodeEnv = process.env.NODE_ENV ?? 'production'
+const dev = nodeEnv !== 'production'
 const app = next({ dev })
 const handle = app.getRequestHandler()
 const ADMIN_PASSWORD_HASH = '80585c5c69ad3b293a62fdee09f5ab7f2f8cb6f2078eb1cf7c96da89f8e26235'
@@ -95,9 +98,15 @@ function enqueue(task: () => Promise<void>) {
 
 async function main() {
   console.log('Starting Petri production server...')
+  console.log(`NODE_ENV=${nodeEnv}`)
+  await prepareDatabase()
+  console.log('PostgreSQL ready')
+  await loadWorld()
+  if (!redis) throw new Error('Redis configuration is required in production.')
+  await redis.ping()
+  console.log('Redis ready')
   await app.prepare()
   console.log('Next.js prepared')
-  await loadWorld()
   const httpServer = createServer((request, response) => handle(request, response))
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 })
   httpServer.on('upgrade', (request, socket, head) => {
@@ -145,8 +154,7 @@ async function main() {
   setInterval(() => {
     if (world.status === 'running') { world = tickWorld(world, TICK_MS); revision += 1; broadcastPatch(); void snapshot() }
   }, TICK_MS)
-  const host = process.env.HOST ?? '0.0.0.0'
-  httpServer.listen(port, host, () => console.log(`HTTP server listening on ${host}:${port}`))
+  httpServer.listen(port, host, () => console.log(`HTTP + WebSocket server listening on ${host}:${port}`))
   const shutdown = () => { clearInterval(heartbeat); httpServer.close(() => process.exit(0)) }
   process.once('SIGTERM', shutdown)
   process.once('SIGINT', shutdown)
