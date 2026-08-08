@@ -10,31 +10,29 @@ const MAX_CREATURES = 180
 const DAY_MS = 24 * 60 * 60 * 1000
 const HOUR_MS = 60 * 60 * 1000
 
-const ENERGY_MAX = 100
-// A well-fed creature that stops eating should take ~5 real days to starve. Energy
-// burns down linearly from full to zero over STARVATION_MS while at rest, plus a
-// small movement surcharge, so a roaming creature lasts a little under five days.
-const STARVATION_MS = 5 * DAY_MS
-const BASE_METABOLISM = ENERGY_MAX / STARVATION_MS // energy per ms at rest
-const MOVE_METABOLISM = 0.1 // moving adds up to ~10% on top of the resting burn
-// Natural lifespan sits far beyond the starvation window so age never masks the
-// five-day survival requirement, while still bounding the population over time.
-const MAX_AGE_MS = 30 * DAY_MS
+export const ENERGY_MAX = 100
+// Five real days is 432,000,000 simulated milliseconds. At rest, a full energy
+// reserve therefore loses 100 / 432,000,000 energy per simulated millisecond.
+export const STARVATION_MS = 5 * DAY_MS
+export const BASE_METABOLISM = ENERGY_MAX / STARVATION_MS
+export const MOVE_METABOLISM = 0.1
+// Aging remains independent from starvation and eventually removes very old adults.
+export const MAX_AGE_MS = 30 * DAY_MS
 
-const FOOD_LIFETIME = 30 * 60_000 // uneaten food lingers for 30 minutes
-const FOOD_TARGET = 60 // standing food the world continuously regenerates toward
-const FOOD_REGEN_PER_MS = 0.0006 // ~0.6 new food per second while below target
-const FOOD_ENERGY = 42 // energy restored per meal
-const FOOD_SPAWN_RADIUS = 900 // food regenerates near living creatures so it stays reachable
+export const FOOD_LIFETIME = 30 * 60_000
+export const FOOD_TARGET = 60
+export const FOOD_REGEN_PER_MS = 0.0006
+export const FOOD_ENERGY = 42
+export const FOOD_SPAWN_RADIUS = 900
 
 // Reproduction is gated on maturity, energy and a per-creature cooldown rather than
 // on chance, so a healthy, fed colony reliably grows instead of drifting extinct.
-const REPRODUCTION_MIN_AGE_MS = 12 * HOUR_MS // maturity
-const REPRODUCTION_COOLDOWN_MS = 12 * HOUR_MS // rest between births per creature
-const REPRODUCTION_MIN_ENERGY = 60
-const REPRODUCTION_ENERGY_COST = 22 // energy each parent spends on an offspring
-const REPRODUCTION_DISTANCE = 220
-const NEWBORN_ENERGY = 72
+export const REPRODUCTION_MIN_AGE_MS = 12 * HOUR_MS
+export const REPRODUCTION_COOLDOWN_MS = 12 * HOUR_MS
+export const REPRODUCTION_MIN_ENERGY = 60
+export const REPRODUCTION_ENERGY_COST = 22
+export const REPRODUCTION_DISTANCE = 220
+export const NEWBORN_ENERGY = 72
 
 const EAT_DISTANCE = 34
 const SEEK_RANGE = 680
@@ -194,7 +192,7 @@ export function maybeReproduce(snapshot: WorldSnapshot): WorldSnapshot {
     )
     next.births += 1
     next.generation = Math.max(next.generation, generation)
-    next.events.unshift(event('reproduction', 'New life', `Mossling · generation ${generation}`, 'mint'))
+    next.events.unshift(event('birth', 'New life', `Mossling · generation ${generation}`, 'mint'))
   }
   if (newborns.length) {
     next.creatures.push(...newborns)
