@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { createInitialSnapshot } from '@/components/petri/simulation'
+import { WORLD_HEIGHT, WORLD_WIDTH } from '@/components/petri/types'
 import type { WorldEvent, WorldSnapshot } from '@/components/petri/types'
 import { db } from '@/lib/db'
 import { petriWorld } from '@/lib/db/schema'
@@ -105,8 +106,8 @@ export async function POST(request: Request) {
     const body = await request.json() as { action?: 'start' | 'restart' | 'feed'; password?: string; x?: number; y?: number }
     const current = await getOrCreateWorld()
     if (body.action === 'feed') {
-      const x = typeof body.x === 'number' && Number.isFinite(body.x) ? Math.max(0, Math.min(1800, body.x)) : null
-      const y = typeof body.y === 'number' && Number.isFinite(body.y) ? Math.max(0, Math.min(1100, body.y)) : null
+      const x = typeof body.x === 'number' && Number.isFinite(body.x) ? Math.max(0, Math.min(WORLD_WIDTH, body.x)) : null
+      const y = typeof body.y === 'number' && Number.isFinite(body.y) ? Math.max(0, Math.min(WORLD_HEIGHT, body.y)) : null
       if (x === null || y === null) return NextResponse.json({ error: 'Food coordinates are invalid.' }, { status: 400 })
       const world: WorldSnapshot = {
         ...current,

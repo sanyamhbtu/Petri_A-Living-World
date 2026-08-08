@@ -3,6 +3,7 @@ import next from 'next'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { eq } from 'drizzle-orm'
 import { createInitialSnapshot, tickWorld, addFood, mutateCreature } from './components/petri/simulation'
+import { WORLD_HEIGHT, WORLD_WIDTH } from './components/petri/types'
 import type { Creature, Food, WorldSnapshot } from './components/petri/types'
 import { db } from './lib/db'
 import { petriWorld } from './lib/db/schema'
@@ -13,8 +14,6 @@ const dev = process.env.NODE_ENV !== 'production'
 const app = next({ dev })
 const handle = app.getRequestHandler()
 const ADMIN_PASSWORD_HASH = '80585c5c69ad3b293a62fdee09f5ab7f2f8cb6f2078eb1cf7c96da89f8e26235'
-const WORLD_WIDTH = 1800
-const WORLD_HEIGHT = 1100
 const TICK_MS = 50
 const BROADCAST_MS = 100
 const SNAPSHOT_MS = 15_000

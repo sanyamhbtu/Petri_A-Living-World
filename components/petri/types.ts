@@ -1,3 +1,8 @@
+export const WORLD_WIDTH = 18000
+export const WORLD_HEIGHT = 11000
+export const WORLD_MARGIN = 140
+export const STARTING_SECTOR = { x: 3200, y: 2200, width: 2800, height: 2200 }
+
 export type CreatureState = 'wandering' | 'seeking_food' | 'eating' | 'reproducing'
 
 export type Creature = {
@@ -11,6 +16,10 @@ export type Creature = {
   generation: number
   state: CreatureState
   pulse: number
+  energy: number
+  age: number
+  eaten: number
+  lastAteAt: number
 }
 
 export type Food = {

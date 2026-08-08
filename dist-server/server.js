@@ -8,6 +8,7 @@ const next_1 = __importDefault(require("next"));
 const ws_1 = require("ws");
 const drizzle_orm_1 = require("drizzle-orm");
 const simulation_1 = require("./components/petri/simulation");
+const types_1 = require("./components/petri/types");
 const db_1 = require("./lib/db");
 const schema_1 = require("./lib/db/schema");
 const redis_1 = require("./lib/redis");
@@ -16,8 +17,6 @@ const dev = process.env.NODE_ENV !== 'production';
 const app = (0, next_1.default)({ dev });
 const handle = app.getRequestHandler();
 const ADMIN_PASSWORD_HASH = '80585c5c69ad3b293a62fdee09f5ab7f2f8cb6f2078eb1cf7c96da89f8e26235';
-const WORLD_WIDTH = 1800;
-const WORLD_HEIGHT = 1100;
 const TICK_MS = 50;
 const BROADCAST_MS = 100;
 const SNAPSHOT_MS = 15_000;
@@ -137,8 +136,8 @@ app.prepare().then(async () => {
             }
             void enqueue(async () => {
                 if (message.type === 'feed') {
-                    const x = safeCoordinate(message.x, WORLD_WIDTH);
-                    const y = safeCoordinate(message.y, WORLD_HEIGHT);
+                    const x = safeCoordinate(message.x, types_1.WORLD_WIDTH);
+                    const y = safeCoordinate(message.y, types_1.WORLD_HEIGHT);
                     if (x === null || y === null) {
                         client.send(JSON.stringify({ type: 'error', message: 'Food coordinates are invalid.' }));
                         return;
