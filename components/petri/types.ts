@@ -20,6 +20,7 @@ export type Creature = {
   age: number
   eaten: number
   lastAteAt: number
+  reproductionCooldown: number
 }
 
 export type Food = {

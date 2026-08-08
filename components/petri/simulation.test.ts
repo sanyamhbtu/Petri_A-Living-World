@@ -1,7 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { addFood, createInitialSnapshot, tickWorld } from './simulation'
+import { addFood, createCreature, createInitialSnapshot, tickWorld } from './simulation'
 import { WORLD_HEIGHT, WORLD_WIDTH } from './types'
+import type { Creature, WorldSnapshot } from './types'
+
+const DAY_MS = 24 * 60 * 60 * 1000
+const HOUR_MS = 60 * 60 * 1000
+const MATURITY_MS = 12 * HOUR_MS
+
+function running(partial: Partial<WorldSnapshot> & { creatures: Creature[] }): WorldSnapshot {
+  const base = createInitialSnapshot()
+  return { ...base, food: [], ...partial, status: 'running' }
+}
 
 test('creatures stay inside the Earth-scale world', () => {
   const snapshot = createInitialSnapshot()
@@ -10,23 +20,93 @@ test('creatures stay inside the Earth-scale world', () => {
 })
 
 test('food is consumed and restores creature energy', () => {
-  const snapshot = createInitialSnapshot()
-  const creature = snapshot.creatures[0]
-  creature.x = 400
-  creature.y = 400
-  creature.energy = 20
-  const fed = addFood(snapshot, 400, 400)
-  const next = tickWorld({ ...fed, status: 'running' }, 1000)
-  assert.equal(next.food.length, 0)
-  assert.ok(next.creatures[0].energy > 20)
+  const creature = createCreature(0, 1, 400, 400, { energy: 20, speed: 0 })
+  const fed = addFood(running({ creatures: [creature] }), 400, 400)
+  const next = tickWorld(fed, 1000)
+  // Regeneration only makes new food edible on the following tick, so this tick the
+  // creature can only have eaten the single placed food.
   assert.equal(next.creatures[0].eaten, 1)
+  assert.ok(next.creatures[0].energy > 20)
 })
 
 test('starving creatures die and increment deaths', () => {
-  const snapshot = createInitialSnapshot()
-  snapshot.creatures = [snapshot.creatures[0]]
-  snapshot.creatures[0].energy = 0
-  const next = tickWorld({ ...snapshot, status: 'running' }, 1000)
+  const creature = createCreature(0, 1, 5000, 5000, { energy: 0 })
+  const next = tickWorld(running({ creatures: [creature] }), 1000)
   assert.equal(next.creatures.length, 0)
   assert.equal(next.deaths, 1)
+})
+
+test('a full creature survives close to five real days without eating', () => {
+  // No initial food means the creature cannot eat during a single tick (regenerated
+  // food only becomes edible next tick), so depletion is deterministic.
+  const almostFiveDays = createCreature(0, 1, 5000, 5000, { energy: 100, speed: 0 })
+  const aliveAt = tickWorld(running({ creatures: [almostFiveDays] }), 4.9 * DAY_MS)
+  assert.equal(aliveAt.creatures.length, 1, 'should still be alive just under five days')
+  assert.ok(aliveAt.creatures[0].energy > 0)
+
+  const past = createCreature(0, 1, 5000, 5000, { energy: 100, speed: 0 })
+  const deadAt = tickWorld(running({ creatures: [past] }), 5.1 * DAY_MS)
+  assert.equal(deadAt.creatures.length, 0, 'should have starved just past five days')
+  assert.equal(deadAt.deaths, 1)
+})
+
+test('resting energy burns down gradually, roughly 20 percent per day', () => {
+  const creature = createCreature(0, 1, 5000, 5000, { energy: 100, speed: 0 })
+  const next = tickWorld(running({ creatures: [creature] }), DAY_MS)
+  const burned = 100 - next.creatures[0].energy
+  assert.ok(burned > 18 && burned < 22, `expected ~20 energy burned in a day, got ${burned}`)
+})
+
+test('two mature, well-fed, nearby creatures reproduce', () => {
+  const parentA = createCreature(0, 1, 5000, 5000, { energy: 100, speed: 0, age: MATURITY_MS, reproductionCooldown: 0 })
+  const parentB = createCreature(1, 1, 5010, 5010, { energy: 100, speed: 0, age: MATURITY_MS, reproductionCooldown: 0 })
+  const next = tickWorld(running({ creatures: [parentA, parentB] }), 1000)
+  assert.equal(next.births, 1)
+  assert.equal(next.creatures.length, 3)
+  assert.equal(next.generation, 2)
+})
+
+test('immature, cooling-down, or hungry creatures do not reproduce', () => {
+  const immature = tickWorld(
+    running({ creatures: [createCreature(0, 1, 5000, 5000, { energy: 100, speed: 0, age: 0 }), createCreature(1, 1, 5010, 5010, { energy: 100, speed: 0, age: 0 })] }),
+    1000,
+  )
+  assert.equal(immature.births, 0)
+
+  const coolingDown = tickWorld(
+    running({ creatures: [createCreature(0, 1, 5000, 5000, { energy: 100, speed: 0, age: MATURITY_MS, reproductionCooldown: 12 * HOUR_MS }), createCreature(1, 1, 5010, 5010, { energy: 100, speed: 0, age: MATURITY_MS, reproductionCooldown: 12 * HOUR_MS })] }),
+    1000,
+  )
+  assert.equal(coolingDown.births, 0)
+
+  const hungry = tickWorld(
+    running({ creatures: [createCreature(0, 1, 5000, 5000, { energy: 40, speed: 0, age: MATURITY_MS, reproductionCooldown: 0 }), createCreature(1, 1, 5010, 5010, { energy: 40, speed: 0, age: MATURITY_MS, reproductionCooldown: 0 })] }),
+    1000,
+  )
+  assert.equal(hungry.births, 0)
+})
+
+test('a fed colony grows across successive reproduction cycles', () => {
+  const colony = Array.from({ length: 4 }, (_, index) => createCreature(index, 1, 5000, 5000, { energy: 100, speed: 0, age: MATURITY_MS, reproductionCooldown: 0 }))
+  const cycleOne = tickWorld(running({ creatures: colony }), 1000)
+  assert.ok(cycleOne.creatures.length > 4, 'first cycle should add offspring')
+
+  // Simulate the world staying fed: refill energy, then advance past the cooldown so
+  // both the original adults and their now-mature offspring can reproduce again.
+  const refuelled: WorldSnapshot = { ...cycleOne, creatures: cycleOne.creatures.map((creature) => ({ ...creature, energy: 100 })) }
+  const cycleTwo = tickWorld(refuelled, 12 * HOUR_MS + 1000)
+  assert.ok(cycleTwo.creatures.length > cycleOne.creatures.length, 'population should keep growing when fed, not shrink')
+})
+
+test('the world regenerates a standing food supply without overfilling', () => {
+  let world = createInitialSnapshot()
+  world = { ...world, status: 'running' }
+  world = tickWorld(world, 100_000)
+  assert.ok(world.food.length > 0, 'food should regenerate from an empty world')
+  assert.ok(world.food.length <= 60, 'food should not exceed the standing target')
+
+  for (let i = 0; i < 5; i += 1) world = tickWorld(world, 100_000)
+  assert.ok(world.food.length > 0, 'food supply should be sustained over time')
+  assert.ok(world.food.length <= 60, 'food should stay capped at the standing target')
+  assert.ok(world.creatures.length >= 12, 'a fed population should not collapse')
 })
