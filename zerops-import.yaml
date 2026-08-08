@@ -1,3 +1,0 @@
-zeropsImport:
-  - resourceType: postgres
-    name: petri-postgres

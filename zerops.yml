@@ -1,7 +1,7 @@
 zerops:
-  - setup: app
+  - setup: nodejs
     build:
-      base: nodejs@latest
+      base: nodejs@22
       buildCommands:
         - corepack enable
         - pnpm install --frozen-lockfile
@@ -22,7 +22,7 @@ zerops:
         - tsconfig.json
         - tsconfig.server.json
     run:
-      base: nodejs@latest
+      base: nodejs@22
       ports:
         - port: 3000
           httpSupport: true
@@ -34,4 +34,4 @@ zerops:
         httpGet:
           path: /api/health
           port: 3000
-      start: node dist-server/server.js
+      start: node dist-server/scripts/prepare-db.js && node dist-server/server.js
