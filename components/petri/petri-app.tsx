@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronRight, CircleHelp, Crosshair, Dna, KeyRound, Leaf, LockKeyhole, Radio, Sparkles, TriangleAlert, X } from 'lucide-react'
 import { addFood, createInitialSnapshot, mutateCreature } from './simulation'
+import { WORLD_HEIGHT, WORLD_WIDTH } from './types'
 import type { WorldSnapshot } from './types'
 import { WorldCanvas } from './world-canvas'
 
@@ -113,8 +114,8 @@ export function PetriApp() {
   }
 
   function handleFeed(x: number, y: number) {
-    const safeX = Math.max(0, Math.min(1800, x))
-    const safeY = Math.max(0, Math.min(1100, y))
+    const safeX = Math.max(0, Math.min(WORLD_WIDTH, x))
+    const safeY = Math.max(0, Math.min(WORLD_HEIGHT, y))
     const next = addFood(world, safeX, safeY)
     setWorld(next)
     if (socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(JSON.stringify({ type: 'feed', x: safeX, y: safeY }))
@@ -129,7 +130,7 @@ export function PetriApp() {
         <header className="brand-lockup"><div className="brand-mark"><Leaf size={18} strokeWidth={2.5} /></div><div><div className="brand-name">petri</div><div className="brand-subtitle">A living world</div></div><div className={`live-pill ${isRunning ? '' : 'is-paused'}`}><span className="live-dot" /> {isRunning ? 'LIVE' : 'WAITING'}</div></header>
         <section className="world-stats" aria-label="World statistics"><div><span>ALIVE FOR</span><strong>{loading ? 'loading' : uptime}</strong></div><div><span>POPULATION</span><strong>{world.creatures.length}</strong></div><div><span>GENERATIONS</span><strong>{generations}</strong></div><div><span>BIRTHS</span><strong className="stat-mint">{world.births}</strong></div><div><span>DEATHS</span><strong className="stat-coral">{world.deaths}</strong></div></section>
         <div className="canvas-hint"><Crosshair size={14} /> {isRunning ? 'Click to place food · drag to pan · wheel to zoom' : 'The world is paused'}</div>
-        <div className="world-coordinates">SECTOR 04 · 35° 12&apos; N · 118° 14&apos; W</div>
+        <div className="world-coordinates">EARTH FIELD · 35° 12&apos; N · 118° 14&apos; W</div>
         <button className="god-button" onClick={() => { setAdminError(''); setAdminOpen(true) }}><LockKeyhole size={14} /> {isRunning ? 'DO NOT CLICK · RESTART' : 'GOD CONTROL · START'}</button>
         <button className="help-button" aria-label="About Petri"><CircleHelp size={17} /></button>
         {connectionError && <div className="connection-error"><TriangleAlert size={14} /> {connectionError}</div>}

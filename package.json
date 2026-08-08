@@ -11,6 +11,7 @@
     "start:realtime": "tsx server.ts",
     "db:prepare": "node dist-server/scripts/prepare-db.js",
     "start:production": "pnpm db:prepare && node dist-server/server.js",
+    "test:simulation": "tsx --test components/petri/simulation.test.ts",
     "lint": "eslint ."
   },
   "dependencies": {

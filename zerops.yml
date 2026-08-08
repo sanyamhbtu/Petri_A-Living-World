@@ -1,7 +1,7 @@
 zerops:
-  - setup: nodejs
+  - setup: app
     build:
-      base: ubuntu/nodejs@22
+      base: nodejs@latest
       buildCommands:
         - corepack enable
         - pnpm install --frozen-lockfile
@@ -15,7 +15,6 @@ zerops:
         - public
         - scripts
         - dist-server
-        - server.ts
         - package.json
         - pnpm-lock.yaml
         - next.config.mjs
@@ -23,7 +22,7 @@ zerops:
         - tsconfig.json
         - tsconfig.server.json
     run:
-      base: ubuntu/nodejs@22
+      base: nodejs@latest
       ports:
         - port: 3000
           httpSupport: true
@@ -31,11 +30,8 @@ zerops:
         NODE_ENV: production
         HOST: 0.0.0.0
         PORT: 3000
-        DATABASE_URL: ${DATABASE_URL}
-        KV_REST_API_URL: ${KV_REST_API_URL}
-        KV_REST_API_TOKEN: ${KV_REST_API_TOKEN}
       healthCheck:
-        http:
+        httpGet:
           path: /api/health
           port: 3000
-      start: pnpm start:production
+      start: node dist-server/server.js
