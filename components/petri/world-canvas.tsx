@@ -189,7 +189,7 @@ function roundRect(context: CanvasRenderingContext2D, x: number, y: number, w: n
   context.closePath()
 }
 
-function drawCreature(context: CanvasRenderingContext2D, creature: Creature, zoom: number) {
+function drawCreature(context: CanvasRenderingContext2D, creature: Creature, zoom: number, renderX = creature.x, renderY = creature.y) {
   const bob = Math.sin(creature.pulse) * 3
   // Substantially larger visual size, with an on-screen floor so creatures stay
   // clearly visible when zoomed out. Simulation coords/speed/scale are untouched.
@@ -204,7 +204,7 @@ function drawCreature(context: CanvasRenderingContext2D, creature: Creature, zoo
   const outline = half * 0.24
 
   context.save()
-  context.translate(creature.x, creature.y + bob)
+  context.translate(renderX, renderY + bob)
 
   // Soft ground shadow (not rotated).
   context.fillStyle = 'rgba(10, 14, 8, .32)'
@@ -263,12 +263,18 @@ function drawCreature(context: CanvasRenderingContext2D, creature: Creature, zoo
 export function WorldCanvas({ creatures, food, onFeed }: WorldCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const creaturesRef = useRef(creatures)
+  const previousCreatureByIdRef = useRef(new Map(creatures.map((creature) => [creature.id, creature])))
+  const snapshotReceivedAtRef = useRef(typeof performance === 'undefined' ? 0 : performance.now())
   const foodRef = useRef(food)
   const onFeedRef = useRef(onFeed)
+  if (creatures !== creaturesRef.current) {
+    previousCreatureByIdRef.current = new Map(creaturesRef.current.map((creature) => [creature.id, creature]))
+    creaturesRef.current = creatures
+    snapshotReceivedAtRef.current = typeof performance === 'undefined' ? 0 : performance.now()
+  }
   const viewRef = useRef({ x: 0, y: 0, zoom: 0 })
   const dragRef = useRef({ active: false, moved: false, x: 0, y: 0 })
   const terrainDirtyRef = useRef(true)
-  creaturesRef.current = creatures
   foodRef.current = food
   onFeedRef.current = onFeed
 
@@ -329,8 +335,15 @@ export function WorldCanvas({ creatures, food, onFeed }: WorldCanvasProps) {
       foodRef.current.forEach((item) => {
         if (item.x >= visibleLeft && item.x <= visibleRight && item.y >= visibleTop && item.y <= visibleBottom) drawFood(context, item.x, item.y, item.age, zoom)
       })
+      const previousById = previousCreatureByIdRef.current
+      const interpolationWindow = 100
+      const interpolation = Math.min(1, Math.max(0, (time - snapshotReceivedAtRef.current) / interpolationWindow))
       creaturesRef.current.forEach((creature) => {
-        if (creature.x >= visibleLeft && creature.x <= visibleRight && creature.y >= visibleTop && creature.y <= visibleBottom) drawCreature(context, creature, zoom)
+        if (creature.x < visibleLeft || creature.x > visibleRight || creature.y < visibleTop || creature.y > visibleBottom) return
+        const previous = previousById.get(creature.id)
+        const renderX = previous ? previous.x + (creature.x - previous.x) * interpolation : creature.x
+        const renderY = previous ? previous.y + (creature.y - previous.y) * interpolation : creature.y
+        drawCreature(context, creature, zoom, renderX, renderY)
       })
       context.restore()
       frame = requestAnimationFrame(render)
