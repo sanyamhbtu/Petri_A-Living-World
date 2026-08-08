@@ -40,6 +40,7 @@ test('food is consumed and restores creature energy', () => {
   // creature can only have eaten the single placed food.
   assert.equal(next.creatures[0].eaten, 1)
   assert.ok(next.creatures[0].energy > 20)
+  assert.equal(next.food.some((food) => food.x === 400 && food.y === 400), false)
 })
 
 test('starving creatures die and increment deaths', () => {
@@ -130,6 +131,16 @@ test('aging eventually removes a creature and records the death event', () => {
   assert.equal(next.creatures.length, 0)
   assert.equal(next.deaths, 1)
   assert.equal(next.events[0]?.kind, 'death')
+})
+
+test('movement advances independently and hungry creatures seek nearby food', () => {
+  const hungry = createCreature(0, 1, 1200, 1200, { angle: 0, speed: 1, energy: 35 })
+  const wanderer = createCreature(1, 1, 1200, 1800, { angle: Math.PI / 2, speed: 1, energy: 100 })
+  const next = tickWorld(running({ creatures: [hungry, wanderer], food: [{ id: 'target-food', x: 1250, y: 1200, age: 0 }] }), 100)
+  assert.notEqual(next.creatures[0].x, hungry.x)
+  assert.notEqual(next.creatures[1].y, wanderer.y)
+  assert.equal(next.creatures[0].state, 'seeking_food')
+  assert.ok(Math.hypot(next.creatures[0].x - 1250, next.creatures[0].y - 1200) < 50)
 })
 
 test('movement respects world boundaries', () => {

@@ -267,6 +267,7 @@ export function WorldCanvas({ creatures, food, onFeed }: WorldCanvasProps) {
   const onFeedRef = useRef(onFeed)
   const viewRef = useRef({ x: 0, y: 0, zoom: 0 })
   const dragRef = useRef({ active: false, moved: false, x: 0, y: 0 })
+  const terrainDirtyRef = useRef(true)
   creaturesRef.current = creatures
   foodRef.current = food
   onFeedRef.current = onFeed
@@ -276,7 +277,11 @@ export function WorldCanvas({ creatures, food, onFeed }: WorldCanvasProps) {
     if (!canvas) return
     const context = canvas.getContext('2d')
     if (!context) return
+    const terrainCanvas = document.createElement('canvas')
+    const terrainContext = terrainCanvas.getContext('2d')
+    if (!terrainContext) return
     let frame = 0
+    let lastTerrainDraw = 0
     const clampView = (target: HTMLCanvasElement) => {
       const worldWidth = WORLD_WIDTH * viewRef.current.zoom
       const worldHeight = WORLD_HEIGHT * viewRef.current.zoom
@@ -287,7 +292,11 @@ export function WorldCanvas({ creatures, food, onFeed }: WorldCanvasProps) {
       const ratio = Math.min(window.devicePixelRatio || 1, 2)
       canvas.width = Math.floor(canvas.clientWidth * ratio)
       canvas.height = Math.floor(canvas.clientHeight * ratio)
+      terrainCanvas.width = canvas.width
+      terrainCanvas.height = canvas.height
       context.setTransform(ratio, 0, 0, ratio, 0, 0)
+      terrainContext.setTransform(ratio, 0, 0, ratio, 0, 0)
+      terrainDirtyRef.current = true
       const fit = Math.min(canvas.clientWidth / 2800, canvas.clientHeight / 2200) * 0.78
       const nextZoom = Math.max(0.05, Math.min(1.6, fit))
       if (!viewRef.current.zoom || viewRef.current.zoom < 0.06) {
@@ -303,12 +312,26 @@ export function WorldCanvas({ creatures, food, onFeed }: WorldCanvasProps) {
     const render = () => {
       const { x, y, zoom } = viewRef.current
       const time = performance.now()
-      drawTerrain(context, canvas.clientWidth, canvas.clientHeight, x, y, zoom, time)
+      if (terrainDirtyRef.current || time - lastTerrainDraw > 250) {
+        drawTerrain(terrainContext, canvas.clientWidth, canvas.clientHeight, x, y, zoom, time)
+        terrainDirtyRef.current = false
+        lastTerrainDraw = time
+      }
+      context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight)
+      context.drawImage(terrainCanvas, 0, 0, canvas.clientWidth, canvas.clientHeight)
       context.save()
       context.translate(x, y)
       context.scale(zoom, zoom)
-      foodRef.current.forEach((item) => drawFood(context, item.x, item.y, item.age, zoom))
-      creaturesRef.current.forEach((creature) => drawCreature(context, creature, zoom))
+      const visibleLeft = Math.max(0, -x / zoom - 80)
+      const visibleTop = Math.max(0, -y / zoom - 80)
+      const visibleRight = Math.min(WORLD_WIDTH, (canvas.clientWidth - x) / zoom + 80)
+      const visibleBottom = Math.min(WORLD_HEIGHT, (canvas.clientHeight - y) / zoom + 80)
+      foodRef.current.forEach((item) => {
+        if (item.x >= visibleLeft && item.x <= visibleRight && item.y >= visibleTop && item.y <= visibleBottom) drawFood(context, item.x, item.y, item.age, zoom)
+      })
+      creaturesRef.current.forEach((creature) => {
+        if (creature.x >= visibleLeft && creature.x <= visibleRight && creature.y >= visibleTop && creature.y <= visibleBottom) drawCreature(context, creature, zoom)
+      })
       context.restore()
       frame = requestAnimationFrame(render)
     }
@@ -340,6 +363,7 @@ export function WorldCanvas({ creatures, food, onFeed }: WorldCanvasProps) {
     if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true
     viewRef.current.x += dx
     viewRef.current.y += dy
+    terrainDirtyRef.current = true
     drag.x = event.clientX
     drag.y = event.clientY
     const canvas = canvasRef.current
@@ -365,6 +389,7 @@ export function WorldCanvas({ creatures, food, onFeed }: WorldCanvasProps) {
     viewRef.current.x = event.nativeEvent.offsetX - point.x * nextZoom
     viewRef.current.y = event.nativeEvent.offsetY - point.y * nextZoom
     viewRef.current.zoom = nextZoom
+    terrainDirtyRef.current = true
     const canvas = canvasRef.current
     if (canvas) {
       const worldWidth = WORLD_WIDTH * viewRef.current.zoom
