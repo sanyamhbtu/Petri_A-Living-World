@@ -1,32 +1,5 @@
-import Link from 'next/link'
-import { ArrowUpRight, CircleDot, Leaf, MoveUpRight, Radio, ScanLine } from 'lucide-react'
-
-const observations = [
-  { number: '01', title: 'A world with memory', body: 'Every movement, meal, birth, and death becomes part of the field record.' },
-  { number: '02', title: 'Nothing is decorative', body: 'Resources run out. Boundaries matter. Small decisions compound across generations.' },
-  { number: '03', title: 'You are the disturbance', body: 'Place food, watch the response, then leave the system to make its own next move.' },
-]
+import { LandingPage } from '@/components/petri/landing-page'
 
 export default function Page() {
-  return (
-    <main className="min-h-screen overflow-hidden bg-background text-foreground">
-      <header className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-6 sm:px-8 lg:px-12">
-        <Link href="/" className="flex items-center gap-3" aria-label="Petri home">
-          <span className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground"><Leaf aria-hidden="true" size={18} /></span>
-          <span className="flex flex-col"><span className="font-serif text-xl leading-none tracking-tight">petri</span><span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">a living world</span></span>
-        </Link>
-        <div className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:gap-8"><span className="hidden sm:inline">Field study // 01</span><Link className="transition-colors hover:text-primary" href="/playground">Enter playground <ArrowUpRight className="ml-1 inline" size={13} /></Link></div>
-      </header>
-
-      <section className="mx-auto grid max-w-[1400px] gap-12 px-5 pb-20 pt-12 sm:px-8 sm:pt-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-end lg:gap-16 lg:px-12 lg:pb-28">
-        <div className="max-w-xl"><div className="mb-8 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary"><span className="size-2 rounded-full bg-primary" />Live ecosystem / online</div><h1 className="max-w-4xl font-serif text-[clamp(4rem,10vw,9.5rem)] leading-[0.84] tracking-[-0.065em] text-pretty">A world that <em className="text-primary">keeps</em> going.</h1><p className="mt-8 max-w-md text-base leading-7 text-muted-foreground sm:text-lg">Petri is a living-world simulation where tiny creatures move, feed, reproduce, and disappear inside an evolving field.</p><div className="mt-10 flex flex-wrap items-center gap-4"><Link href="/playground" className="group inline-flex items-center gap-3 rounded-full bg-primary px-5 py-3 font-mono text-xs uppercase tracking-[0.16em] text-primary-foreground transition-transform hover:-translate-y-0.5">Observe the world <MoveUpRight className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" size={16} /></Link><span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">No account required</span></div></div>
-        <div className="relative min-h-[360px] overflow-hidden rounded-[2rem] border border-border bg-primary/10 p-4 sm:min-h-[480px] lg:min-h-[560px]"><div className="absolute inset-4 overflow-hidden rounded-[1.5rem] bg-[#406c33]"><div className="field-grid absolute inset-0 opacity-70" /><div className="absolute left-[12%] top-[16%] size-24 rounded-[42%_58%_55%_45%] bg-[#566f3a] blur-[1px]" /><div className="absolute bottom-[12%] right-[18%] size-32 rounded-[58%_42%_48%_52%] bg-[#715331] blur-[1px]" /><div className="creature creature-one"><CircleDot size={20} /></div><div className="creature creature-two"><CircleDot size={14} /></div><div className="creature creature-three"><CircleDot size={17} /></div><div className="absolute bottom-5 left-5 rounded-full border border-white/20 bg-black/20 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-white/70 backdrop-blur-sm">Field 35°12′ N / 11°48′ E</div><div className="absolute right-5 top-5 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.16em] text-white/70"><Radio size={13} /> websocket live</div></div><div className="absolute left-8 top-8 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.18em] text-primary"><ScanLine size={14} /> current observation</div></div>
-      </section>
-
-      <section className="border-y border-border bg-secondary/50"><div className="mx-auto grid max-w-[1400px] gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:px-12 lg:py-24"><div><p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">The premise</p><h2 className="mt-5 max-w-sm font-serif text-4xl leading-[0.95] tracking-[-0.045em] sm:text-6xl">Set a condition. Watch a life form.</h2></div><div className="grid gap-8 sm:grid-cols-3 sm:gap-6">{observations.map((observation) => <article key={observation.number} className="border-t border-border pt-4"><span className="font-mono text-[10px] tracking-[0.16em] text-primary">{observation.number}</span><h3 className="mt-8 font-serif text-2xl leading-tight">{observation.title}</h3><p className="mt-4 text-sm leading-6 text-muted-foreground">{observation.body}</p></article>)}</div></div></section>
-
-      <section className="mx-auto grid max-w-[1400px] gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:px-12 lg:py-32"><div><p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Read the field notes</p><p className="mt-6 max-w-2xl font-serif text-4xl leading-[0.98] tracking-[-0.045em] sm:text-6xl">The interesting part is not the creature. It is what the creature reveals.</p></div><div className="border-l-2 border-primary pl-6 sm:pl-10"><p className="max-w-sm text-base leading-7 text-muted-foreground">Open a live world. Pan beyond the first frame. Place a resource and wait for the ecology to answer.</p><Link href="/playground" className="mt-8 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.16em] text-primary transition-colors hover:text-foreground">Open the observation deck <ArrowUpRight size={14} /></Link></div></section>
-      <footer className="mx-auto flex max-w-[1400px] flex-col gap-4 border-t border-border px-5 py-8 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12"><span>Petri // a living world</span><span>Built for slow observation</span></footer>
-    </main>
-  )
+  return <LandingPage />
 }
