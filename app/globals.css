@@ -2,11 +2,22 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
-:root { --background: #151315; --foreground: #f0e7cf; --panel: rgba(24, 20, 23, .86); --panel-strong: #1e181d; --line: rgba(240, 231, 207, .18); --muted: #a29b90; --mint: #b1d36c; --amber: #d98b2e; --coral: #d66c58; --water: #20839b; --radius: .35rem; }
-@theme inline { --color-background: var(--background); --color-foreground: var(--foreground); --color-primary: var(--mint); --color-primary-foreground: #142015; --color-secondary: #ebe6d8; --color-secondary-foreground: #142015; --color-muted: #ebe6d8; --color-muted-foreground: #65705d; --color-border: #d5d0c0; --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif; --font-serif: Georgia, 'Times New Roman', serif; --font-mono: var(--font-geist-mono), ui-monospace, monospace; }
+:root { --background: #020617; --foreground: #f8fafc; --panel: rgba(15, 23, 42, .86); --panel-strong: #0f172a; --line: rgba(248, 250, 252, .18); --muted: #94a3b8; --mint: #10b981; --amber: #f59e0b; --coral: #ef4444; --water: #0ea5e9; --radius: .35rem; }
+@theme inline {
+  --color-background: var(--background); --color-foreground: var(--foreground); --color-primary: var(--mint); --color-primary-foreground: #022c22; --color-secondary: #e2e8f0; --color-secondary-foreground: #020617; --color-muted: #e2e8f0; --color-muted-foreground: #64748b; --color-border: #cbd5e1;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif; --font-serif: Georgia, 'Times New Roman', serif; --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --text-xs: 0.351rem; --text-xs--line-height: 1.5;
+  --text-sm: 0.592rem; --text-sm--line-height: 1.5;
+  --text-base: 1rem; --text-base--line-height: 1.5;
+  --text-lg: 1.688rem; --text-lg--line-height: 1.4;
+  --text-xl: 2.849rem; --text-xl--line-height: 1.3;
+  --text-2xl: 4.810rem; --text-2xl--line-height: 1.2;
+  --text-3xl: 8.119rem; --text-3xl--line-height: 1.1;
+  --text-4xl: 13.704rem; --text-4xl--line-height: 1;
+}
 * { box-sizing: border-box; }
 html { background: var(--background); }
-body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-geist), ui-sans-serif, sans-serif; }
+body { margin: 0; background: radial-gradient(circle at top, #1e293b 0%, #020617 100%); background-attachment: fixed; color: var(--foreground); font-family: var(--font-geist), ui-sans-serif, sans-serif; }
 button { font: inherit; }
 .petri-shell { min-height: 100svh; background: var(--background); color: var(--foreground); }
 .world-stage { position: relative; min-height: 100svh; overflow: hidden; isolation: isolate; }
