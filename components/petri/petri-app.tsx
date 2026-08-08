@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronRight, CircleHelp, Crosshair, Dna, KeyRound, Leaf, LockKeyhole, Radio, Sparkles, TriangleAlert, X } from 'lucide-react'
-import { addFood, createInitialSnapshot, mutateCreature } from './simulation'
+import { createInitialSnapshot, mutateCreature } from './simulation'
 import { WORLD_HEIGHT, WORLD_WIDTH } from './types'
 import type { WorldSnapshot } from './types'
 import { WorldCanvas } from './world-canvas'
@@ -71,9 +71,10 @@ export function PetriApp() {
           setWorld(message.world)
           if (pendingAdminRef.current) { pendingAdminRef.current = false; setPassword(''); setAdminOpen(false) }
         }
-        if (message.type === 'patch' && message.creatures && message.food) {
+        if (message.type === 'patch' && Array.isArray(message.creatures) && Array.isArray(message.food)) {
           const nextRevision = message.revision ?? revisionRef.current + 1
-          revisionRef.current = Math.max(revisionRef.current, nextRevision)
+          if (nextRevision <= revisionRef.current) return
+          revisionRef.current = nextRevision
           setWorld((current) => ({
             ...current,
             creatures: message.creatures!,
@@ -113,13 +114,15 @@ export function PetriApp() {
     setWorld(data as WorldSnapshot); setPassword(''); setAdminOpen(false)
   }
 
-  function handleFeed(x: number, y: number) {
+  async function handleFeed(x: number, y: number) {
     const safeX = Math.max(0, Math.min(WORLD_WIDTH, x))
     const safeY = Math.max(0, Math.min(WORLD_HEIGHT, y))
-    const next = addFood(world, safeX, safeY)
-    setWorld(next)
-    if (socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(JSON.stringify({ type: 'feed', x: safeX, y: safeY }))
-    else void fetch('/api/petri', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'feed', x: safeX, y: safeY }) })
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: 'feed', x: safeX, y: safeY }))
+    } else {
+      const response = await fetch('/api/petri', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'feed', x: safeX, y: safeY }) })
+      if (response.ok) setWorld(await response.json() as WorldSnapshot)
+    }
   }
 
   return (

@@ -36,8 +36,16 @@ export const NEWBORN_ENERGY = 72
 
 const EAT_DISTANCE = 34
 const SEEK_RANGE = 680
+const MOVEMENT_SCALE = 0.12
+const MAX_TURN_PER_MS = 0.0018
 
 function id(prefix: string) { return `${prefix}-${Math.random().toString(36).slice(2, 10)}` }
+function angleDelta(from: number, to: number) { return Math.atan2(Math.sin(to - from), Math.cos(to - from)) }
+function stableWander(idValue: string, pulse: number) {
+  let hash = 0
+  for (let index = 0; index < idValue.length; index += 1) hash = (hash * 31 + idValue.charCodeAt(index)) | 0
+  return Math.sin(pulse * 0.0011 + hash * 0.017) * 0.0009
+}
 function randomBetween(min: number, max: number) { return min + Math.random() * (max - min) }
 function event(kind: WorldEvent['kind'], title: string, detail: string, color: string): WorldEvent { return { id: Date.now() + Math.floor(Math.random() * 1000), kind, title, detail, time: 'now', color } }
 function clamp(value: number, min: number, max: number) { return Math.max(min, Math.min(max, value)) }
@@ -91,20 +99,25 @@ export function tickWorld(snapshot: WorldSnapshot, elapsed: number): WorldSnapsh
     if (nextCreature.reproductionCooldown > 0) nextCreature.reproductionCooldown = Math.max(0, nextCreature.reproductionCooldown - elapsed)
     // Gradual, time-based hunger: full energy lasts ~5 real days at rest.
     nextCreature.energy -= elapsed * BASE_METABOLISM * (1 + nextCreature.speed * MOVE_METABOLISM)
-    nextCreature.state = target && Math.hypot(target.x - nextCreature.x, target.y - nextCreature.y) < SEEK_RANGE ? 'seeking_food' : 'wandering'
-    if (target && nextCreature.state === 'seeking_food') nextCreature.angle = Math.atan2(target.y - nextCreature.y, target.x - nextCreature.x)
-    else nextCreature.angle += (Math.random() - 0.5) * 0.08
+    const distanceToTarget = target ? Math.hypot(target.x - nextCreature.x, target.y - nextCreature.y) : Infinity
+    nextCreature.state = target && distanceToTarget < SEEK_RANGE ? 'seeking_food' : 'wandering'
+    const desiredAngle = nextCreature.state === 'seeking_food' && target
+      ? Math.atan2(target.y - nextCreature.y, target.x - nextCreature.x)
+      : nextCreature.angle + stableWander(nextCreature.id, nextCreature.pulse)
     const edgePadding = 520
-    if (nextCreature.x < WORLD_MARGIN + edgePadding || nextCreature.x > WORLD_WIDTH - WORLD_MARGIN - edgePadding) nextCreature.angle = Math.PI - nextCreature.angle
-    if (nextCreature.y < WORLD_MARGIN + edgePadding || nextCreature.y > WORLD_HEIGHT - WORLD_MARGIN - edgePadding) nextCreature.angle = -nextCreature.angle
-    nextCreature.x = clamp(nextCreature.x + Math.cos(nextCreature.angle) * nextCreature.speed * elapsed * 0.022, WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN)
-    nextCreature.y = clamp(nextCreature.y + Math.sin(nextCreature.angle) * nextCreature.speed * elapsed * 0.022, WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN)
+    const edgeSteering = (nextCreature.x < WORLD_MARGIN + edgePadding ? 1 : nextCreature.x > WORLD_WIDTH - WORLD_MARGIN - edgePadding ? -1 : 0) * Math.PI * 0.0008
+      + (nextCreature.y < WORLD_MARGIN + edgePadding ? 1 : nextCreature.y > WORLD_HEIGHT - WORLD_MARGIN - edgePadding ? -1 : 0) * Math.PI * 0.0008
+    const turn = clamp(angleDelta(nextCreature.angle, desiredAngle) + edgeSteering, -MAX_TURN_PER_MS * elapsed, MAX_TURN_PER_MS * elapsed)
+    nextCreature.angle += turn
+    nextCreature.x = clamp(nextCreature.x + Math.cos(nextCreature.angle) * nextCreature.speed * elapsed * MOVEMENT_SCALE, WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN)
+    nextCreature.y = clamp(nextCreature.y + Math.sin(nextCreature.angle) * nextCreature.speed * elapsed * MOVEMENT_SCALE, WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN)
     if (target && Math.hypot(target.x - nextCreature.x, target.y - nextCreature.y) < EAT_DISTANCE) {
       consumed.add(target.id)
       nextCreature.state = 'eating'
       nextCreature.energy = clamp(nextCreature.energy + FOOD_ENERGY, 0, ENERGY_MAX)
       nextCreature.eaten += 1
       nextCreature.lastAteAt = nextCreature.age
+      next.events.unshift(event('feed', 'Food consumed', `${speciesName(nextCreature)} restored ${FOOD_ENERGY} energy`, 'amber'))
     }
     if (nextCreature.energy <= 0 || nextCreature.age >= MAX_AGE_MS) { deaths.push(nextCreature); return [] }
     return nextCreature
@@ -123,13 +136,20 @@ export function tickWorld(snapshot: WorldSnapshot, elapsed: number): WorldSnapsh
 function regenerateFood(snapshot: WorldSnapshot, elapsed: number) {
   const deficit = FOOD_TARGET - snapshot.food.length
   if (deficit <= 0) return
-  const spawns = Math.min(deficit, Math.floor(elapsed * FOOD_REGEN_PER_MS + Math.random()))
+  // One probabilistic spawn opportunity per tick keeps regeneration gradual at the
+  // server's 50 ms cadence, while large deterministic test steps can catch up.
+  const spawns = Math.min(deficit, elapsed >= 1000 ? Math.max(1, Math.floor(elapsed * FOOD_REGEN_PER_MS)) : (Math.random() < elapsed * FOOD_REGEN_PER_MS ? 1 : 0))
   for (let i = 0; i < spawns; i += 1) {
     const anchor = snapshot.creatures.length ? snapshot.creatures[Math.floor(Math.random() * snapshot.creatures.length)] : null
     const baseX = anchor ? anchor.x : STARTING_SECTOR.x + STARTING_SECTOR.width / 2
     const baseY = anchor ? anchor.y : STARTING_SECTOR.y + STARTING_SECTOR.height / 2
-    const x = clamp(baseX + randomBetween(-FOOD_SPAWN_RADIUS, FOOD_SPAWN_RADIUS), WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN)
-    const y = clamp(baseY + randomBetween(-FOOD_SPAWN_RADIUS, FOOD_SPAWN_RADIUS), WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN)
+    let x = baseX
+    let y = baseY
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      x = clamp(baseX + randomBetween(-FOOD_SPAWN_RADIUS, FOOD_SPAWN_RADIUS), WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN)
+      y = clamp(baseY + randomBetween(-FOOD_SPAWN_RADIUS, FOOD_SPAWN_RADIUS), WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN)
+      if (snapshot.creatures.every((creature) => Math.hypot(creature.x - x, creature.y - y) > EAT_DISTANCE * 2)) break
+    }
     snapshot.food.push({ id: id('food'), x, y, age: 0 })
   }
 }
