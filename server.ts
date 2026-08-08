@@ -93,7 +93,8 @@ function enqueue(task: () => Promise<void>) {
   return commandQueue
 }
 
-app.prepare().then(async () => {
+async function main() {
+  await app.prepare()
   await loadWorld()
   const httpServer = createServer((request, response) => handle(request, response))
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 })
@@ -147,4 +148,9 @@ app.prepare().then(async () => {
   const shutdown = () => { clearInterval(heartbeat); httpServer.close(() => process.exit(0)) }
   process.once('SIGTERM', shutdown)
   process.once('SIGINT', shutdown)
+}
+
+main().catch((error) => {
+  console.error('[petri] production server failed to start', error)
+  process.exitCode = 1
 })
