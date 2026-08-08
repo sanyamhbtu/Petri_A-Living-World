@@ -40,6 +40,7 @@
     "@types/pg": "^8.20.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.185.1",
     "@types/ws": "^8.18.1",
     "postcss": "^8.5",
     "tailwindcss": "^4.3.3",
