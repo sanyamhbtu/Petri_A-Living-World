@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="public/banner.png" alt="Petri — A Living World" width="100%" />
+<img src="public/banner.png" alt="Petri — A Living World" width="600" />
 
 <!-- badges -->
 <br/>
